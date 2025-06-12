@@ -16,3 +16,9 @@ Real-time AI surveillance: Fire, Fall, Fight detection.
 4. Frontend environment (React + Tailwind)
 5.ML integration test
 
+#How to run locally > Backend
+ ### Backend Prerequisites
+1. Copy `backend/.env.example` to `backend/.env`.
+2. In `backend/.env`, set:
+3. `.env` is ignored by Git; do not commit secrets.
+ 
