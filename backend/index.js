@@ -4,8 +4,11 @@ const express = require('express');
 const mongoose = require('mongoose');
 const app = express();
 const PORT = process.env.PORT || 3000;
+const eventRoutes = require('./routes/eventRoutes');
 
 app.use(express.json());
+app.use('/api/event', eventRoutes);   // For POST
+app.use('/api/events', eventRoutes);  // For GET
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`, req.body || '');
   next();
