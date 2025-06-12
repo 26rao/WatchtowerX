@@ -21,6 +21,24 @@ app.get('/', (req, res) => {
 
 // TODO: connect to DB & mount routes later
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// After app.get routes
+const mongoURI = process.env.MONGODB_URI;
+if (!mongoURI) {
+  console.error('MONGODB_URI not set');
+  process.exit(1);
+}
+mongoose.connect(mongoURI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => {
+    console.log('Connected to MongoDB Atlas');
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('Failed to connect to MongoDB', err);
+    process.exit(1);
+  });
+
