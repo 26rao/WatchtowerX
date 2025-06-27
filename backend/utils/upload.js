@@ -10,4 +10,3 @@
 module.exports.uploadSnapshot = async (base64Image) => {
   return process.env.PLACEHOLDER_SNAPSHOT_URL;
 };
-
