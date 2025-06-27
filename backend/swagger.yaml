@@ -1,45 +1,52 @@
-openapi: 3.0.0
-info:
-  title: WatchtowerX API
-  version: 1.0.0
-  description: Minimal OpenAPI spec for WatchtowerX
+components:
+  schemas:
+    Event:
+      type: object
+      properties:
+        eventId:
+          type: string
+        eventType:
+          type: string
+          enum: [fire, fall, fight]
+        timestamp:
+          type: string
+          format: date-time
+        location:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high]
+        status:
+          type: string
+          enum: [pending, dispatched, resolved]
+        notes:
+          type: string
+        snapshotUrl:
+          type: string
+          nullable: true
 paths:
-  /api/event:
-    post:
-      summary: Create a new event
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                eventType:
-                  type: string
-                  enum: [fire, fall, fight]
-                timestamp:
-                  type: string
-                  format: date-time
-                priority:
-                  type: integer
-                cameraId:
-                  type: string
-              required: [eventType, timestamp, priority, cameraId]
-      responses:
-        "201":
-          description: Event created
   /api/events:
     get:
-      summary: List events
       parameters:
         - in: query
-          name: limit
+          name: type
           schema:
-            type: integer
-        - in: query
-          name: page
-          schema:
-            type: integer
+            type: string
+            enum: [fire, fall, fight]
+          description: Filter by eventType
       responses:
-        "200":
-          description: A list of events
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'

@@ -1,96 +1,78 @@
-````markdown
-# Backend API Reference
-
-This document describes the REST API endpoints for the WatchtowerX backend service.
 
 ---
+### 2. Updated `API.md`
 
-## Authentication & Headers
+````markdown
+# WatchtowerX Backend API Reference
 
-- No authentication required for now.
-- All endpoints accept and return JSON.
-- Content-Type header for POST requests must be set to `application/json`.
+_All endpoints accept and return JSON. `Content-Type: application/json` required for POST._
 
 ---
 
 ## 1. Health Check
 
-**Endpoint**: `GET /health`
-
-**Purpose**: Verify the server is running.
-
-**Response**
-
-- Status: `200 OK`
-- Body:
-  ```json
-  {
-    "status": "OK",
-    "timestamp": "2025-06-27T12:34:56.789Z"
-  }
-  ```
+**GET** `/health`  
+**Response** `200 OK`  
+```json
+{
+  "status": "OK",
+  "timestamp": "2025-06-27T12:34:56.789Z"
+}
 ````
 
 ---
 
 ## 2. Create Event
 
-**Endpoint**: `POST /api/event`
-
+**POST** `/api/event`
 **Purpose**: Ingest a new surveillance event.
 
 ### Request
 
-- **URL**: `http://<host>:<port>/api/event`
-- **Headers**:
+```http
+POST http://<host>:<port>/api/event
+Content-Type: application/json
 
-  ```
-  Content-Type: application/json
-  ```
+{
+  "eventType": "fire",         // Required: "fire" | "fall" | "fight"
+  "timestamp": "2025-06-26T12:00:00Z", // Required: ISO 8601
+  "priority": 1,               // Required: integer
+  "cameraId": "cam1",          // Required: string
+  "location": "Main Gate",     // Optional: string
+  "severity": "high",          // Optional: "low" | "medium" | "high"
+  "status": "dispatched",      // Optional: "pending" | "dispatched" | "resolved"
+  "notes": "Detected by cam1", // Optional: string
+  "base64Image": "data:image/png;base64,..." // Optional: triggers snapshot upload
+}
+```
 
-- **Body**:
+### Response
 
-  ```json
-  {
-    "eventType": "fire", // Required. One of: "fire", "fall", "fight"
-    "timestamp": "2025-06-26T12:00:00Z", // Required. ISO 8601 format
-    "priority": 1, // Required. Integer 1 (low) to 3 (high)
-    "cameraId": "cam1", // Required. Unique camera identifier
-    "location": "Main Gate", // Optional. Human-readable location
-    "confidence": 0.87, // Optional. ML confidence score (0.0–1.0)
-    "snapshotUrl": "https://...", // Optional. URL to snapshot image
-    "base64Image": "data:image/png;base64,..." // Optional. Base64 image; stub upload
-  }
-  ```
-
-### Responses
-
-- **201 Created**
+* **201 Created**
 
   ```json
   {
     "success": true,
     "event": {
-      "_id": "60f8f0f0f0f0f0f0f0f0f0",
+      "eventId": "60f8f0f0f0f0f0f0f0f0f0",
       "eventType": "fire",
       "timestamp": "2025-06-26T12:00:00.000Z",
-      "priority": 3,
-      "cameraId": "cam1",
       "location": "Main Gate",
-      "confidence": 0.87,
-      "snapshotUrl": "https://via.placeholder.com/300x200.png?text=Snapshot",
-      "__v": 0
+      "severity": "high",
+      "status": "dispatched",
+      "notes": "Detected by cam1",
+      "snapshotUrl": "https://via.placeholder.com/300x200.png?text=Snapshot"
     }
   }
   ```
 
-- **400 Bad Request**
+* **400 Bad Request**
 
   ```json
   { "error": "\"eventType\" is required" }
   ```
 
-- **500 Internal Server Error**
+* **500 Internal Server Error**
 
   ```json
   { "error": "Internal Server Error" }
@@ -100,47 +82,50 @@ This document describes the REST API endpoints for the WatchtowerX backend servi
 
 ## 3. List Events
 
-**Endpoint**: `GET /api/events`
-
-**Purpose**: Retrieve stored events with optional filtering, sorting, and pagination.
+**GET** `/api/events`
+**Purpose**: Retrieve stored events with filtering, sorting, and pagination.
 
 ### Query Parameters
 
-| Parameter  | Type     | Default       | Description                                      |
-| ---------- | -------- | ------------- | ------------------------------------------------ |
-| `type`     | `string` | _none_        | Filter by `eventType` ("fire", "fall", "fight")  |
-| `priority` | `number` | _none_        | Filter by priority level (1–3)                   |
-| `cameraId` | `string` | _none_        | Filter by camera identifier                      |
-| `limit`    | `number` | `50`          | Maximum number of events to return               |
-| `sort`     | `string` | `"timestamp"` | Field to sort by (`timestamp`, `priority`, etc.) |
-| `order`    | `string` | `"desc"`      | Sort order: `"asc"` or `"desc"`                  |
+| Name        | Type    | Default     | Description                                         |
+| ----------- | ------- | ----------- | --------------------------------------------------- |
+| `type`      | string  | *none*      | Filter by `eventType` ("fire", "fall", "fight")     |
+| `priority`  | integer | *none*      | Filter by priority level                            |
+| `cameraId`  | string  | *none*      | Filter by camera identifier                         |
+| `limit`     | integer | 50          | Max number of events to return                      |
+| `page`      | integer | 1           | Page number for pagination                          |
+| `startDate` | string  | *none*      | ISO date to start filter (`timestamp >= startDate`) |
+| `endDate`   | string  | *none*      | ISO date to end filter (`timestamp <= endDate`)     |
+| `sort`      | string  | `timestamp` | Field to sort by (`timestamp`, `priority`, etc.)    |
+| `order`     | string  | `desc`      | Sort order: `asc` or `desc`                         |
 
-### Example Request
+### Example
 
 ```bash
-curl "http://localhost:5000/api/events?type=fire&limit=10&sort=priority&order=asc"
+curl "http://localhost:5000/api/events?type=fire&limit=10&sort=timestamp&order=asc"
 ```
 
 ### Response
 
-- **200 OK**
+* **200 OK**
 
   ```json
   {
+    "page": 1,
+    "limit": 10,
     "events": [
       {
-        "_id": "60f8f0f0f0f0f0f0f0f0f0",
+        "eventId": "60f8f0f0f0f0f0f0f0f0f0",
         "eventType": "fire",
         "timestamp": "2025-06-26T12:00:00.000Z",
-        "priority": 3,
-        "cameraId": "cam1",
         "location": "Main Gate",
-        "confidence": 0.87,
-        "snapshotUrl": "https://via.placeholder.com/300x200.png?text=Snapshot",
-        "__v": 0
+        "severity": "high",
+        "status": "dispatched",
+        "notes": "Detected by cam1",
+        "snapshotUrl": null
       },
       {
-        // ... additional events ...
+        // ...
       }
     ]
   }
@@ -148,21 +133,66 @@ curl "http://localhost:5000/api/events?type=fire&limit=10&sort=priority&order=as
 
 ---
 
-## 4. Error Handling
+## 4. Bulk Delete
 
-All endpoints propagate errors through a centralized middleware.
+**DELETE** `/api/events?olderThan=YYYY-MM-DD`
+**Purpose**: Delete events older than the specified date.
 
-- Validation errors return **400** with a descriptive message.
-- Server errors return **500** with `{ "error": "Internal Server Error" }`.
+### Example
+
+```bash
+curl -X DELETE "http://localhost:5000/api/events?olderThan=2025-01-01"
+```
+
+### Response
+
+* **200 OK**
+
+  ```json
+  { "deletedCount": 42 }
+  ```
+
+* **400 Bad Request**
+
+  ```json
+  { "error": "Query param `olderThan` is required" }
+  ```
 
 ---
 
-## 5. Notes
+## 5. Export Events as CSV
 
-- Snapshot upload is currently a stub. Real storage logic (Supabase/S3) will be added later.
-- The `base64Image` field is optional — include it only if you want the backend to generate a snapshot URL.
-- For any questions or issues, check the console logs or contact the backend maintainer.
+**GET** `/api/events/export`
+**Purpose**: Download all events in CSV format.
+
+### Example
+
+```bash
+curl "http://localhost:5000/api/events/export" -o events.csv
+```
+
+### Response
+
+* **200 OK** with `Content-Type: text/csv`, attachment `events.csv`.
+
+---
+
+## 6. Error Handling
+
+* Validation errors → **400** with `{ "error": "message" }`
+* Server errors → **500** with `{ "error": "Internal Server Error" }`
+
+---
+
+### Notes
+
+* `snapshotUrl` is `null` when no image is provided; frontend will show a placeholder.
+* Base64 image uploads are stubbed to return a placeholder URL.
+* All new fields (`severity`, `status`, `notes`) have defaults if omitted.
+* Query parameter `type` maps to `eventType` on the backend.
+* For any discrepancies, check server logs or reach out to the backend maintainer.
 
 ```
 
-```
+---
+
