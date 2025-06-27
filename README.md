@@ -21,23 +21,22 @@
 ```
 
 WatchtowerX/
-├── backend/           # Express + MongoDB API
-│   ├── models/        # Mongoose schemas
-│   ├── routes/        # API route handlers
-│   ├── middleware/    # Centralized error handler
-│   ├── utils/         # Snapshot upload stub
-│   ├── .env.example   # Copy to `.env` and configure
-│   ├── API.md         # Backend API reference
-│   └── index.js       # Server entrypoint
+├── backend/ # Express + MongoDB API
+│ ├── models/ # Mongoose schemas
+│ ├── routes/ # API route handlers
+│ ├── middleware/ # Centralized error handler
+│ ├── utils/ # Snapshot upload stub
+│ ├── .env.example # Copy to .env and configure
+│ ├── API.md # Backend API reference
+│ └── index.js # Server entrypoint
 │
-├── frontend/          # React + Vite + Tailwind UI
-│   └── …               # (Arnav’s code)
+├── frontend/ # React + Vite + Tailwind UI
+│ └── … # (Arnav’s code)
 │
 └── script/
-└── ml/            # Python dummy-event generator
+└── ml/ # Python dummy-event generator
 ├── requirements.txt
-└── send\_dummy\_event.py
-
+└── send_dummy_event.py
 ````
 
 ---
