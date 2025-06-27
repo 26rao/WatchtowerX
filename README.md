@@ -34,11 +34,10 @@ WatchtowerX/
 │ └── … # (Arnav’s code)
 │
 └── script/
-└── ml/ # Python dummy-event generator
-├── requirements.txt
-└── send_dummy_event.py
+    └── ml/ # Python dummy-event generator
+        ├── requirements.txt
+        └── send_dummy_event.py
 ````
-
 ---
 
 ## 🔧 Backend Setup
@@ -55,7 +54,8 @@ WatchtowerX/
    # Edit `.env`:
    # PORT=5000
    # MONGODB_URI=<your-mongodb-atlas-uri>
-   # (Optional) API_KEY, FCM_SERVER_KEY
+   # API_KEY=<your-backend-api-key>         # (Required) Used for securing backend API requests
+   # FCM_SERVER_KEY=<your-fcm-server-key>   # (Optional) Needed only if enabling Firebase Cloud Messaging for push alerts
    ```
 3. **Install dependencies**
 
@@ -155,6 +155,12 @@ Quick examples:
    ```bash
    python send_dummy_event.py --type fire --camera cam1 --location "Main Gate"
    ```
+### Data Retention & Indexes
+- We keep events indefinitely (consider purge via DELETE endpoint).
+- Indexes:
+  - `timestamp_-1`
+  - `priority_1`
+  - `eventType_1_timestamp_-1`
 
 ---
 

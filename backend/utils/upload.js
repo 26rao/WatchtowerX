@@ -8,6 +8,6 @@
  * @returns {Promise<string>}   – A public URL to the uploaded snapshot.
  */
 module.exports.uploadSnapshot = async (base64Image) => {
-  // TODO: implement real upload here
-  return 'https://via.placeholder.com/300x200.png?text=Snapshot';
+  return process.env.PLACEHOLDER_SNAPSHOT_URL;
 };
+
