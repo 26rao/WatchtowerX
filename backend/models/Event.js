@@ -1,32 +1,18 @@
 // backend/models/Event.js
 const mongoose = require('mongoose');
 
-const EventSchema = new mongoose.Schema({
-  eventType: {
-    type: String,
-    required: true,
-    enum: ['fire', 'fall', 'fight'],
-  },
-  timestamp: {
-    type: Date,
-    default: Date.now,
-  },
-  cameraId: {
-    type: String,
-    default: null,
-  },
-  location: {
-    type: String,
-    default: null,
-  },
-  snapshotUrl: {
-    type: String,
-    default: null,
-  },
-  priority: {
-    type: Number,
-    default: 1,
-  },
+const eventSchema = new mongoose.Schema({
+  eventType:   { type: String, required: true },      // fire|fall|fight
+  timestamp:   { type: Date,   required: true, default: Date.now },
+  priority:    { type: Number, required: true },      // 1–3
+  cameraId:    { type: String, required: true },
+  location:    { type: String, default: 'Unknown' },
+  confidence:  { type: Number, default: null },       // new
+  snapshotUrl: { type: String, default: null },       // new
 });
 
-module.exports = mongoose.model('Event', EventSchema);
+// Create indexes for faster querying
+eventSchema.index({ timestamp: -1 });
+eventSchema.index({ priority: 1 });
+
+module.exports = mongoose.model('Event', eventSchema);

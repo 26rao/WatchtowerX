@@ -1,62 +1,63 @@
-// backend/routes/eventRoutes.js
+// WatchtowerX/backend/routes/eventRoutes.js
+
 const express = require('express');
-const router = express.Router();
-const Event = require('../models/Event');
+const Joi     = require('joi');
+const Event   = require('../models/Event');
+const router  = express.Router();
 
-function computePriority(eventType) {
-  switch (eventType) {
-    case 'fire': return 3;
-    case 'fall': return 2;
-    case 'fight': return 1;
-    default: return 1;
-  }
-}
+// Validation schema
+const eventValidationSchema = Joi.object({
+  eventType:    Joi.string().valid('fire','fall','fight').required(),
+  timestamp:    Joi.date().iso().required(),
+  priority:     Joi.number().integer().min(1).max(3).required(),
+  cameraId:     Joi.string().required(),
+  location:     Joi.string().allow('', null),
+  confidence:   Joi.number().min(0).max(1).optional(),
+  snapshotUrl:  Joi.string().uri().optional().allow(null, ''),
+  base64Image:  Joi.string().optional()   // ← newly added
+});
 
-// POST /api/event
-router.post('/', async (req, res) => {
+
+// POST /api/event  → create a new event
+const { uploadSnapshot } = require('../utils/upload');
+
+router.post('/event', async (req, res, next) => {
+  const { error, value } = eventValidationSchema.validate(req.body);
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
   try {
-    const { eventType, timestamp, cameraId, location, snapshotUrl } = req.body;
-    if (!eventType) return res.status(400).json({ error: 'eventType is required' });
-    if (!['fire', 'fall', 'fight'].includes(eventType)) {
-      return res.status(400).json({ error: 'Invalid eventType' });
+    // If ML eventually sends base64Image, handle it:
+    if (req.body.base64Image) {
+      value.snapshotUrl = await uploadSnapshot(req.body.base64Image);
     }
-
-    const priority = computePriority(eventType);
-
-    const newEvent = new Event({
-      eventType,
-      timestamp: timestamp || new Date(),
-      cameraId,
-      location,
-      snapshotUrl,
-      priority,
-    });
-
-    const savedEvent = await newEvent.save();
-    return res.status(201).json({ success: true, event: savedEvent });
-  } catch (error) {
-    console.error('POST /api/event error:', error);
-    return res.status(500).json({ error: 'Server error' });
+    const evt = new Event(value);
+    await evt.save();
+    return res.status(201).json({ success: true, event: evt });
+  } catch (err) {
+    next(err);
   }
 });
 
-// GET /api/events
-router.get('/', async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit) || 10;
-    const sortBy = req.query.sortBy || 'timestamp';
-    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
 
-    const events = await Event.find()
-      .sort({ [sortBy]: sortOrder })
-      .limit(limit)
-      .lean();
+// GET /api/events  → list events with optional filters
+router.get('/events', async (req, res, next) => {
+  try {
+    const { type, priority, cameraId, limit = 50, sort = 'timestamp', order = 'desc' } = req.query;
+    const filter = {};
+    if (type)      filter.eventType = type;
+    if (priority)  filter.priority  = Number(priority);
+    if (cameraId)  filter.cameraId  = cameraId;
+
+    const sortOrder = order === 'asc' ? 1 : -1;
+    const events = await Event.find(filter)
+      .sort({ [sort]: sortOrder })
+      .limit(Number(limit));
 
     return res.json({ events });
-  } catch (error) {
-    console.error('GET /api/events error:', error);
-    return res.status(500).json({ error: 'Server error' });
+  } catch (err) {
+    next(err);
   }
 });
 
 module.exports = router;
+
