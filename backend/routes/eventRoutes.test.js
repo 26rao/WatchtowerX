@@ -9,10 +9,7 @@ jest.setTimeout(30000);
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
-  await mongoose.connect(uri, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  });
+  await mongoose.connect(uri);
 });
 
 afterAll(async () => {
@@ -57,6 +54,7 @@ describe("Events API", () => {
     const res = await request(app).post("/api/event").send(payload);
     expect(res.status).toBe(201);
     const evt = res.body.event;
+
     expect(evt.eventType).toBe("fire");
     expect(evt.priority).toBe(1);
     expect(evt.cameraId).toBe("camX");
@@ -94,7 +92,7 @@ describe("Events API", () => {
   });
 
   it("exports CSV on GET /api/events/export", async () => {
-    // Add one event for export
+    // seed one event so our CSV has data
     await request(app).post("/api/event").send({
       eventType: "fire",
       timestamp: new Date().toISOString(),
@@ -109,8 +107,6 @@ describe("Events API", () => {
     const res = await request(app).get("/api/events/export");
     expect(res.status).toBe(200);
     expect(res.header["content-type"]).toMatch(/text\/csv/);
-
-    // Header row check — include double quotes as csv-lib wraps fields
     expect(res.text).toContain(
       `"eventType","timestamp","priority","cameraId","location","severity","status","notes"`
     );

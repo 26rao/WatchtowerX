@@ -1,32 +1,65 @@
-components:
-  schemas:
-    Event:
-      type: object
-      properties:
-        eventId:
-          type: string
-        eventType:
-          type: string
-          enum: [fire, fall, fight]
-        timestamp:
-          type: string
-          format: date-time
-        location:
-          type: string
-        severity:
-          type: string
-          enum: [low, medium, high]
-        status:
-          type: string
-          enum: [pending, dispatched, resolved]
-        notes:
-          type: string
-        snapshotUrl:
-          type: string
-          nullable: true
+openapi: 3.0.0
+info:
+  title: WatchtowerX Events API
+  version: 1.0.0
+
 paths:
+  /api/event:
+    post:
+      summary: Create a new event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                eventType:
+                  type: string
+                  enum: [fire, fall, fight]
+                timestamp:
+                  type: string
+                  format: date-time
+                priority:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                cameraId:
+                  type: string
+                location:
+                  type: string
+                severity:
+                  type: string
+                  enum: [low, medium, high]
+                status:
+                  type: string
+                  enum: [pending, dispatched, resolved]
+                notes:
+                  type: string
+                  maxLength: 512
+                base64Image:
+                  type: string
+                  description: Optional base64 image string
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  event:
+                    $ref: '#/components/schemas/Event'
+        '400':
+          description: Validation error
+        '500':
+          description: Snapshot upload or internal error
+
   /api/events:
     get:
+      summary: List events with filters, pagination, sorting
       parameters:
         - in: query
           name: type
@@ -34,9 +67,54 @@ paths:
             type: string
             enum: [fire, fall, fight]
           description: Filter by eventType
+        - in: query
+          name: priority
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+          description: Filter by event priority
+        - in: query
+          name: cameraId
+          schema:
+            type: string
+          description: Filter by cameraId
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+          description: Start date filter
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+          description: End date filter
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          description: Items per page
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Page number
+        - in: query
+          name: sort
+          schema:
+            type: string
+          description: Sort field (e.g. timestamp)
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+          description: Sort order
       responses:
         '200':
-          description: OK
+          description: A list of events
           content:
             application/json:
               schema:
@@ -50,3 +128,70 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/Event'
+
+  /api/events:
+    delete:
+      summary: Bulk delete events older than a given timestamp
+      parameters:
+        - in: query
+          name: olderThan
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: Delete events older than this timestamp
+      responses:
+        '200':
+          description: Events deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deletedCount:
+                    type: integer
+        '400':
+          description: Missing or invalid query param
+
+  /api/events/export:
+    get:
+      summary: Export all events as CSV
+      responses:
+        '200':
+          description: CSV export of events
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+components:
+  schemas:
+    Event:
+      type: object
+      properties:
+        eventId:
+          type: string
+        eventType:
+          type: string
+          enum: [fire, fall, fight]
+        timestamp:
+          type: string
+          format: date-time
+        priority:
+          type: integer
+        cameraId:
+          type: string
+        location:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high]
+        status:
+          type: string
+          enum: [pending, dispatched, resolved]
+        notes:
+          type: string
+        snapshotUrl:
+          type: string
+          nullable: true

@@ -1,4 +1,3 @@
-// WatchtowerX/backend/routes/eventRoutes.js
 const express = require("express");
 const Joi = require("joi");
 const { Parser } = require("json2csv");
@@ -10,14 +9,14 @@ const router = express.Router();
 // 1) Validation schema
 // ———————————————
 const eventValidationSchema = Joi.object({
-  eventType: Joi.string().valid("fire", "fall", "fight").required(),
-  timestamp: Joi.date().iso().required(),
-  priority: Joi.number().integer().min(1).max(5).required(),
-  cameraId: Joi.string().required(),
-  location: Joi.string().optional(),
-  severity: Joi.string().valid("low", "medium", "high").optional(),
-  status: Joi.string().valid("pending", "dispatched", "resolved").optional(),
-  notes: Joi.string().optional(),
+  eventType:   Joi.string().valid("fire", "fall", "fight").required(),
+  timestamp:   Joi.date().iso().required(),
+  priority:    Joi.number().integer().min(1).max(5).required(),
+  cameraId:    Joi.string().required(),
+  location:    Joi.string().optional(),
+  severity:    Joi.string().valid("low", "medium", "high").optional(),
+  status:      Joi.string().valid("pending", "dispatched", "resolved").optional(),
+  notes:       Joi.string().max(512).optional(),
   base64Image: Joi.string().optional(),
 });
 
@@ -31,42 +30,45 @@ router.post("/event", async (req, res, next) => {
   }
 
   try {
-    value.snapshotUrl = null;
+    // snapshot stub or real upload
+    let snapshotUrl = null;
     if (value.base64Image) {
       try {
-        value.snapshotUrl = await uploadSnapshot(value.base64Image);
-      } catch (uploadErr) {
+        snapshotUrl = await uploadSnapshot(value.base64Image);
+      } catch {
         return res.status(500).json({ error: "Snapshot upload failed" });
       }
     }
 
+    // assemble persisted object with defaults
     const toSave = {
-      eventType: value.eventType,
-      timestamp: new Date(value.timestamp),
-      priority: value.priority,
-      cameraId: value.cameraId,
-      location: value.location || "Unknown",
-      severity: value.severity || "medium",
-      status: value.status || "pending",
-      notes: value.notes || "",
-      snapshotUrl: value.snapshotUrl,
+      eventType:   value.eventType,
+      timestamp:   new Date(value.timestamp),
+      priority:    value.priority,
+      cameraId:    value.cameraId,
+      location:    value.location || "Unknown",
+      severity:    value.severity || "medium",
+      status:      value.status   || "pending",
+      notes:       value.notes    || "",
+      snapshotUrl,
     };
 
     const evt = await Event.create(toSave);
 
+    // shape response exactly as UI expects
     return res.status(201).json({
       success: true,
       event: {
-        eventId: evt._id.toString(),
-        eventType: evt.eventType,
-        timestamp: evt.timestamp.toISOString(),
-        priority: evt.priority,
-        cameraId: evt.cameraId,
-        location: evt.location,
-        severity: evt.severity,
+        eventId:     evt._id.toString(),
+        eventType:   evt.eventType,
+        timestamp:   evt.timestamp.toISOString(),
+        priority:    evt.priority,
+        cameraId:    evt.cameraId,
+        location:    evt.location,
+        severity:    evt.severity,
         snapshotUrl: evt.snapshotUrl,
-        status: evt.status,
-        notes: evt.notes,
+        status:      evt.status,
+        notes:       evt.notes,
       },
     });
   } catch (err) {
@@ -75,34 +77,29 @@ router.post("/event", async (req, res, next) => {
 });
 
 // ——————————————————————————————
-// 3) GET /api/events → list with filters
+// 3) GET /api/events → list with filters, pagination, date-range
 // ——————————————————————————————
 router.get("/events", async (req, res, next) => {
   try {
     let {
-      type,
-      priority,
-      cameraId,
-      limit = 50,
-      page = 1,
-      startDate,
-      endDate,
-      sort = "timestamp",
-      order = "desc",
+      type, priority, cameraId,
+      limit = 50, page = 1,
+      startDate, endDate,
+      sort = "timestamp", order = "desc"
     } = req.query;
 
     const filter = {};
-    if (type) filter.eventType = type;
-    if (priority) filter.priority = Number(priority);
-    if (cameraId) filter.cameraId = cameraId;
+    if (type)      filter.eventType = type;
+    if (priority)  filter.priority  = Number(priority);
+    if (cameraId)  filter.cameraId  = cameraId;
     if (startDate || endDate) {
       filter.timestamp = {};
       if (startDate) filter.timestamp.$gte = new Date(startDate);
-      if (endDate) filter.timestamp.$lte = new Date(endDate);
+      if (endDate)   filter.timestamp.$lte = new Date(endDate);
     }
 
-    limit = parseInt(limit);
-    page = parseInt(page);
+    limit = parseInt(limit, 10);
+    page  = parseInt(page,  10);
     const skip = (page - 1) * limit;
     const sortOrder = order === "asc" ? 1 : -1;
 
@@ -111,17 +108,17 @@ router.get("/events", async (req, res, next) => {
       .skip(skip)
       .limit(limit);
 
-    const events = docs.map((doc) => ({
-      eventId: doc._id.toString(),
-      eventType: doc.eventType,
-      timestamp: doc.timestamp.toISOString(),
-      priority: doc.priority,
-      cameraId: doc.cameraId,
-      location: doc.location,
-      severity: doc.severity,
+    const events = docs.map(doc => ({
+      eventId:     doc._id.toString(),
+      eventType:   doc.eventType,
+      timestamp:   doc.timestamp.toISOString(),
+      priority:    doc.priority,
+      cameraId:    doc.cameraId,
+      location:    doc.location,
+      severity:    doc.severity,
       snapshotUrl: doc.snapshotUrl,
-      status: doc.status,
-      notes: doc.notes,
+      status:      doc.status,
+      notes:       doc.notes,
     }));
 
     return res.json({ page, limit, events });
@@ -154,14 +151,8 @@ router.get("/events/export", async (req, res, next) => {
   try {
     const docs = await Event.find().lean();
     const fields = [
-      "eventType",
-      "timestamp",
-      "priority",
-      "cameraId",
-      "location",
-      "severity",
-      "status",
-      "notes",
+      "eventType","timestamp","priority","cameraId",
+      "location","severity","status","notes"
     ];
     const parser = new Parser({ fields });
     const csv = parser.parse(docs);

@@ -11,7 +11,7 @@ const eventSchema = new mongoose.Schema({
   snapshotUrl: { type: String, default: null },
   severity: { type: String, enum:["low","medium","high"], default:"medium" },
   status: { type: String, enum:["pending","dispatched","resolved"], default:"pending" },
-  notes: { type: String, maxlength:500 },
+  notes: { type: String, maxlength:512, default:"" },
 });
 
 // **Debug line—temporary**
