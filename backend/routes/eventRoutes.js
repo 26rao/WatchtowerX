@@ -5,70 +5,68 @@ const Event = require("../models/Event");
 const { uploadSnapshot } = require("../utils/upload");
 const router = express.Router();
 
-// ———————————————
+const LABEL_TO_PRIORITY = { Low: 1, Medium: 2, High: 3 };
+
 // 1) Validation schema
-// ———————————————
 const eventValidationSchema = Joi.object({
-  eventType:   Joi.string().valid("fire", "fall", "fight").required(),
-  timestamp:   Joi.date().iso().required(),
-  priority:    Joi.number().integer().min(1).max(5).required(),
-  cameraId:    Joi.string().required(),
-  location:    Joi.string().optional(),
-  severity:    Joi.string().valid("low", "medium", "high").optional(),
-  status:      Joi.string().valid("pending", "dispatched", "resolved").optional(),
-  notes:       Joi.string().max(512).optional(),
-  base64Image: Joi.string().optional(),
+  eventType:     Joi.string().valid("fire","fall","fight").required(),
+  timestamp:     Joi.date().iso().required(),
+  cameraId:      Joi.string().required(),
+  confidence:    Joi.number().min(0).max(1).required(),
+  priorityLabel: Joi.string().valid("Low","Medium","High").required(),
+  snapshotData:  Joi.string().dataUri().required(),
+  eventDetails:  Joi.object({ description: Joi.string().max(512) }).optional(),
+  location:      Joi.string().optional(),
+  severity:      Joi.string().valid("low","medium","high").optional(),
+  status:        Joi.string().valid("pending","dispatched","resolved").optional(),
+  notes:         Joi.string().max(512).optional(),
 });
 
-// ———————————————
-// 2) POST /api/event → create a new event
-// ———————————————
+// 2) POST /api/event
 router.post("/event", async (req, res, next) => {
   const { error, value } = eventValidationSchema.validate(req.body);
-  if (error) {
-    return res.status(400).json({ error: error.details[0].message });
+  if (error) return res.status(400).json({ error: error.details[0].message });
+
+  let snapshotUrl;
+  try {
+    snapshotUrl = await uploadSnapshot(value.snapshotData);
+  } catch (uploadErr) {
+    console.error("Snapshot upload error:", uploadErr);
+    return res.status(500).json({ error: "Snapshot upload failed" });
   }
 
   try {
-    // snapshot stub or real upload
-    let snapshotUrl = null;
-    if (value.base64Image) {
-      try {
-        snapshotUrl = await uploadSnapshot(value.base64Image);
-      } catch {
-        return res.status(500).json({ error: "Snapshot upload failed" });
-      }
-    }
-
-    // assemble persisted object with defaults
     const toSave = {
-      eventType:   value.eventType,
-      timestamp:   new Date(value.timestamp),
-      priority:    value.priority,
-      cameraId:    value.cameraId,
-      location:    value.location || "Unknown",
-      severity:    value.severity || "medium",
-      status:      value.status   || "pending",
-      notes:       value.notes    || "",
+      eventType:     value.eventType,
+      timestamp:     new Date(value.timestamp),
+      cameraId:      value.cameraId,
+      confidence:    value.confidence,
+      priority:      LABEL_TO_PRIORITY[value.priorityLabel],
+      priorityLabel: value.priorityLabel,
+      location:      value.location || "Unknown",
+      severity:      value.severity || "medium",
+      status:        value.status   || "pending",
+      notes:         value.notes    || value.eventDetails?.description || "",
       snapshotUrl,
     };
 
     const evt = await Event.create(toSave);
 
-    // shape response exactly as UI expects
     return res.status(201).json({
       success: true,
       event: {
-        eventId:     evt._id.toString(),
-        eventType:   evt.eventType,
-        timestamp:   evt.timestamp.toISOString(),
-        priority:    evt.priority,
-        cameraId:    evt.cameraId,
-        location:    evt.location,
-        severity:    evt.severity,
-        snapshotUrl: evt.snapshotUrl,
-        status:      evt.status,
-        notes:       evt.notes,
+        eventId:       evt._id.toString(),
+        eventType:     evt.eventType,
+        timestamp:     evt.timestamp.toISOString(),
+        cameraId:      evt.cameraId,
+        confidence:    evt.confidence,
+        priority:      evt.priority,
+        priorityLabel: evt.priorityLabel,
+        location:      evt.location,
+        severity:      evt.severity,
+        snapshotUrl:   evt.snapshotUrl,
+        status:        evt.status,
+        notes:         evt.notes,
       },
     });
   } catch (err) {
@@ -76,22 +74,16 @@ router.post("/event", async (req, res, next) => {
   }
 });
 
-// ——————————————————————————————
-// 3) GET /api/events → list with filters, pagination, date-range
-// ——————————————————————————————
+// 3) GET /api/events
 router.get("/events", async (req, res, next) => {
   try {
-    let {
-      type, priority, cameraId,
-      limit = 50, page = 1,
-      startDate, endDate,
-      sort = "timestamp", order = "desc"
-    } = req.query;
-
+    let { type, cameraId, priority, location, limit = 50, page = 1, startDate, endDate, sort = "timestamp", order = "desc" } = req.query;
     const filter = {};
-    if (type)      filter.eventType = type;
-    if (priority)  filter.priority  = Number(priority);
+
+    if (type)      filter.eventType = { $in: type.split(",").map(s=>s.trim()) };
     if (cameraId)  filter.cameraId  = cameraId;
+    if (priority)  filter.priority  = { $in: priority.split(",").map(n=>Number(n)) };
+    if (location)  filter.location  = { $regex: location, $options: "i" };
     if (startDate || endDate) {
       filter.timestamp = {};
       if (startDate) filter.timestamp.$gte = new Date(startDate);
@@ -109,16 +101,18 @@ router.get("/events", async (req, res, next) => {
       .limit(limit);
 
     const events = docs.map(doc => ({
-      eventId:     doc._id.toString(),
-      eventType:   doc.eventType,
-      timestamp:   doc.timestamp.toISOString(),
-      priority:    doc.priority,
-      cameraId:    doc.cameraId,
-      location:    doc.location,
-      severity:    doc.severity,
-      snapshotUrl: doc.snapshotUrl,
-      status:      doc.status,
-      notes:       doc.notes,
+      eventId:       doc._id.toString(),
+      eventType:     doc.eventType,
+      timestamp:     doc.timestamp.toISOString(),
+      cameraId:      doc.cameraId,
+      confidence:    doc.confidence,
+      priority:      doc.priority,
+      priorityLabel: doc.priorityLabel,
+      location:      doc.location,
+      severity:      doc.severity,
+      snapshotUrl:   doc.snapshotUrl,
+      status:        doc.status,
+      notes:         doc.notes,
     }));
 
     return res.json({ page, limit, events });
@@ -127,9 +121,7 @@ router.get("/events", async (req, res, next) => {
   }
 });
 
-// ————————————————————————
-// 4) DELETE /api/events?olderThan= → bulk delete
-// ————————————————————————
+// 4) DELETE /api/events
 router.delete("/events", async (req, res, next) => {
   try {
     const { olderThan } = req.query;
@@ -144,22 +136,41 @@ router.delete("/events", async (req, res, next) => {
   }
 });
 
-// ————————————————————————————————
-// 5) GET /api/events/export → CSV export of all events
-// ————————————————————————————————
+// 5) CSV export
 router.get("/events/export", async (req, res, next) => {
   try {
     const docs = await Event.find().lean();
-    const fields = [
-      "eventType","timestamp","priority","cameraId",
-      "location","severity","status","notes"
-    ];
+    const fields = ["eventType","timestamp","cameraId","confidence","priority","priorityLabel","location","severity","status","notes"];
     const parser = new Parser({ fields });
     const csv = parser.parse(docs);
 
     res.header("Content-Type", "text/csv");
     res.attachment("events.csv");
     return res.send(csv);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 6) JSON export
+router.get("/events/export.json", async (req, res, next) => {
+  try {
+    const docs = await Event.find().lean();
+    const out = docs.map(doc => ({
+      eventId:       doc._id.toString(),
+      eventType:     doc.eventType,
+      timestamp:     doc.timestamp.toISOString(),
+      cameraId:      doc.cameraId,
+      confidence:    doc.confidence,
+      priority:      doc.priority,
+      priorityLabel: doc.priorityLabel,
+      location:      doc.location,
+      severity:      doc.severity,
+      snapshotUrl:   doc.snapshotUrl,
+      status:        doc.status,
+      notes:         doc.notes,
+    }));
+    return res.json(out);
   } catch (err) {
     next(err);
   }

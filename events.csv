@@ -1,0 +1,37 @@
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: *
+Content-Security-Policy: default-src 'self';base-uri 'self';font-src 'self' https: data:;form-action 'self';frame-ancestors 'self';img-src 'self' data:;object-src 'none';script-src 'self';script-src-attr 'none';style-src 'self' https: 'unsafe-inline';upgrade-insecure-requests
+Cross-Origin-Opener-Policy: same-origin
+Cross-Origin-Resource-Policy: same-origin
+Origin-Agent-Cluster: ?1
+Referrer-Policy: no-referrer
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Content-Type-Options: nosniff
+X-DNS-Prefetch-Control: off
+X-Download-Options: noopen
+X-Frame-Options: SAMEORIGIN
+X-Permitted-Cross-Domain-Policies: none
+X-XSS-Protection: 0
+X-RateLimit-Limit: 200
+X-RateLimit-Remaining: 194
+Date: Sun, 29 Jun 2025 11:50:11 GMT
+X-RateLimit-Reset: 1751198365
+Content-Type: text/csv; charset=utf-8
+Content-Disposition: attachment; filename="events.csv"
+Content-Length: 1288
+ETag: W/"508-TtifMpcnoDfUhN8P2Q7KxZMe77o"
+Vary: Accept-Encoding
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+"eventType","timestamp","cameraId","confidence","priority","priorityLabel","location","severity","status","notes"
+"fall","2025-06-30T10:00:00.000Z","cam2",,2,,"Unknown",,,
+"fall","2025-06-29T12:00:00.000Z","CAM-01-Gate",0.92,3,"High","Sector 7","high","pending","Auto-detected fall from YOLOv8"
+"fall","2025-06-29T12:00:00.000Z","CAM-01-Gate",0.92,3,"High","Sector 7","high","pending","Auto-detected fall from YOLOv8"
+"fall","2025-06-29T12:00:00.000Z","CAM-01-Gate",0.92,3,"High","Sector 7","high","pending","Auto-detected fall from YOLOv8"
+"fall","2025-06-29T12:00:00.000Z","CAM-01-Gate",0.92,3,"High","Sector 7","high","pending","Auto-detected fall from YOLOv8"
+"fall","2025-06-29T12:00:00.000Z","CAM-01-Gate",0.92,3,"High","Sector 7","high","pending","Auto-detected fall from YOLOv8"
+"fall","2025-06-29T12:00:00.000Z","CAM-01-Gate",0.92,3,"High","Sector 7","high","pending","Auto-detected fall from YOLOv8"
+"fall","2025-06-29T12:00:00.000Z","CAM-01-Gate",0.92,3,"High","Sector 7","high","pending","Auto-detected fall from YOLOv8"
+"fall","2025-06-29T12:00:00.000Z","CAM-01-Gate",0.92,3,"High","Sector 7","high","pending","Auto-detected fall from YOLOv8"
+"fall","2025-06-29T12:00:00.000Z","CAM-01-Gate",0.92,3,"High","Sector 7","high","pending","Auto-detected fall from YOLOv8"

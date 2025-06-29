@@ -13,6 +13,13 @@ paths:
           application/json:
             schema:
               type: object
+              required:
+                - eventType
+                - timestamp
+                - cameraId
+                - confidence
+                - priorityLabel
+                - snapshotData
               properties:
                 eventType:
                   type: string
@@ -20,12 +27,24 @@ paths:
                 timestamp:
                   type: string
                   format: date-time
-                priority:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
                 cameraId:
                   type: string
+                confidence:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                priorityLabel:
+                  type: string
+                  enum: [Low, Medium, High]
+                snapshotData:
+                  type: string
+                  description: Base64 data URI
+                eventDetails:
+                  type: object
+                  properties:
+                    description:
+                      type: string
+                      maxLength: 512
                 location:
                   type: string
                 severity:
@@ -37,21 +56,13 @@ paths:
                 notes:
                   type: string
                   maxLength: 512
-                base64Image:
-                  type: string
-                  description: Optional base64 image string
       responses:
         '201':
-          description: Event created successfully
+          description: Event created
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  event:
-                    $ref: '#/components/schemas/Event'
+                $ref: '#/components/schemas/Event'
         '400':
           description: Validation error
         '500':
@@ -61,57 +72,15 @@ paths:
     get:
       summary: List events with filters, pagination, sorting
       parameters:
-        - in: query
-          name: type
-          schema:
-            type: string
-            enum: [fire, fall, fight]
-          description: Filter by eventType
-        - in: query
-          name: priority
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 5
-          description: Filter by event priority
-        - in: query
-          name: cameraId
-          schema:
-            type: string
-          description: Filter by cameraId
-        - in: query
-          name: startDate
-          schema:
-            type: string
-            format: date-time
-          description: Start date filter
-        - in: query
-          name: endDate
-          schema:
-            type: string
-            format: date-time
-          description: End date filter
-        - in: query
-          name: limit
-          schema:
-            type: integer
-          description: Items per page
-        - in: query
-          name: page
-          schema:
-            type: integer
-          description: Page number
-        - in: query
-          name: sort
-          schema:
-            type: string
-          description: Sort field (e.g. timestamp)
-        - in: query
-          name: order
-          schema:
-            type: string
-            enum: [asc, desc]
-          description: Sort order
+        - in: query; name: type; schema: { type: string, enum: [fire, fall, fight] }
+        - in: query; name: priority; schema: { type: integer, minimum: 1, maximum: 3 }
+        - in: query; name: cameraId; schema: { type: string }
+        - in: query; name: startDate; schema: { type: string, format: date-time }
+        - in: query; name: endDate; schema: { type: string, format: date-time }
+        - in: query; name: limit; schema: { type: integer }
+        - in: query; name: page; schema: { type: integer }
+        - in: query; name: sort; schema: { type: string }
+        - in: query; name: order; schema: { type: string, enum: [asc, desc] }
       responses:
         '200':
           description: A list of events
@@ -120,78 +89,64 @@ paths:
               schema:
                 type: object
                 properties:
-                  page:
-                    type: integer
-                  limit:
-                    type: integer
+                  page:  { type: integer }
+                  limit: { type: integer }
                   events:
                     type: array
                     items:
                       $ref: '#/components/schemas/Event'
-
-  /api/events:
     delete:
-      summary: Bulk delete events older than a given timestamp
+      summary: Bulk delete events older than a timestamp
       parameters:
-        - in: query
-          name: olderThan
-          required: true
-          schema:
-            type: string
-            format: date-time
-          description: Delete events older than this timestamp
+        - in: query; name: olderThan; required: true; schema: { type: string, format: date-time }
       responses:
         '200':
-          description: Events deleted
+          description: Deletion result
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  deletedCount:
-                    type: integer
-        '400':
-          description: Missing or invalid query param
+                  deletedCount: { type: integer }
+        '400': { description: Missing or invalid query param }
 
   /api/events/export:
     get:
       summary: Export all events as CSV
       responses:
         '200':
-          description: CSV export of events
+          description: CSV export
           content:
             text/csv:
+              schema: { type: string, format: binary }
+
+  /api/events/export.json:
+    get:
+      summary: Export all events as JSON
+      responses:
+        '200':
+          description: JSON export
+          content:
+            application/json:
               schema:
-                type: string
-                format: binary
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
 
 components:
   schemas:
     Event:
       type: object
       properties:
-        eventId:
-          type: string
-        eventType:
-          type: string
-          enum: [fire, fall, fight]
-        timestamp:
-          type: string
-          format: date-time
-        priority:
-          type: integer
-        cameraId:
-          type: string
-        location:
-          type: string
-        severity:
-          type: string
-          enum: [low, medium, high]
-        status:
-          type: string
-          enum: [pending, dispatched, resolved]
-        notes:
-          type: string
-        snapshotUrl:
-          type: string
-          nullable: true
+        eventId:       { type: string }
+        eventType:     { type: string, enum: [fire, fall, fight] }
+        timestamp:     { type: string, format: date-time }
+        cameraId:      { type: string }
+        confidence:    { type: number, format: float }
+        priority:      { type: integer }
+        priorityLabel: { type: string, enum: [Low, Medium, High] }
+        location:      { type: string }
+        severity:      { type: string, enum: [low, medium, high] }
+        status:        { type: string, enum: [pending, dispatched, resolved] }
+        notes:         { type: string }
+        snapshotUrl:   { type: string, nullable: true }
