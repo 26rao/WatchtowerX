@@ -6,7 +6,8 @@ const { uploadSnapshot } = require("../utils/upload");
 const router = express.Router();
 
 const LABEL_TO_PRIORITY = { Low: 1, Medium: 2, High: 3 };
-//abcdefgdfbgfnnng
+//this is connected 
+
 // 1) Validation schema
 const eventValidationSchema = Joi.object({
   eventType:     Joi.string().valid("fire","fall","fight").required(),
