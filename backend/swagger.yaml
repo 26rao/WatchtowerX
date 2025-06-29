@@ -72,25 +72,68 @@ paths:
     get:
       summary: List events with filters, pagination, sorting
       parameters:
-        - in: query; name: type; schema: { type: string, enum: [fire, fall, fight] }
-        - in: query; name: priority; schema: { type: integer, minimum: 1, maximum: 3 }
-        - in: query; name: cameraId; schema: { type: string }
-        - in: query; name: startDate; schema: { type: string, format: date-time }
-        - in: query; name: endDate; schema: { type: string, format: date-time }
-        - in: query; name: limit; schema: { type: integer }
-        - in: query; name: page; schema: { type: integer }
-        - in: query; name: sort; schema: { type: string }
-        - in: query; name: order; schema: { type: string, enum: [asc, desc] }
+        - in: query
+          name: type
+          schema:
+            type: string
+          description: Comma‑separated list of event types (fire, fall, fight)
+        - in: query
+          name: priority
+          schema:
+            type: string
+          description: Comma‑separated list of priorities (1,2,3)
+        - in: query
+          name: cameraId
+          schema:
+            type: string
+        - in: query
+          name: location
+          schema:
+            type: string
+          description: Partial or full match on location
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: sort
+          schema:
+            type: string
+            default: timestamp
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
       responses:
         '200':
-          description: A list of events
+          description: A paginated list of events
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  page:  { type: integer }
-                  limit: { type: integer }
+                  page:
+                    type: integer
+                  limit:
+                    type: integer
                   events:
                     type: array
                     items:
@@ -98,7 +141,13 @@ paths:
     delete:
       summary: Bulk delete events older than a timestamp
       parameters:
-        - in: query; name: olderThan; required: true; schema: { type: string, format: date-time }
+        - in: query
+          name: olderThan
+          required: true
+          schema:
+            type: string
+            format: date-time
+          description: ISO‑8601 cutoff; deletes events before this
       responses:
         '200':
           description: Deletion result
@@ -107,8 +156,10 @@ paths:
               schema:
                 type: object
                 properties:
-                  deletedCount: { type: integer }
-        '400': { description: Missing or invalid query param }
+                  deletedCount:
+                    type: integer
+        '400':
+          description: Missing or invalid query parameter
 
   /api/events/export:
     get:
@@ -118,7 +169,9 @@ paths:
           description: CSV export
           content:
             text/csv:
-              schema: { type: string, format: binary }
+              schema:
+                type: string
+                format: binary
 
   /api/events/export.json:
     get:
@@ -138,15 +191,34 @@ components:
     Event:
       type: object
       properties:
-        eventId:       { type: string }
-        eventType:     { type: string, enum: [fire, fall, fight] }
-        timestamp:     { type: string, format: date-time }
-        cameraId:      { type: string }
-        confidence:    { type: number, format: float }
-        priority:      { type: integer }
-        priorityLabel: { type: string, enum: [Low, Medium, High] }
-        location:      { type: string }
-        severity:      { type: string, enum: [low, medium, high] }
-        status:        { type: string, enum: [pending, dispatched, resolved] }
-        notes:         { type: string }
-        snapshotUrl:   { type: string, nullable: true }
+        eventId:
+          type: string
+        eventType:
+          type: string
+          enum: [fire, fall, fight]
+        timestamp:
+          type: string
+          format: date-time
+        cameraId:
+          type: string
+        confidence:
+          type: number
+          format: float
+        priority:
+          type: integer
+        priorityLabel:
+          type: string
+          enum: [Low, Medium, High]
+        location:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high]
+        status:
+          type: string
+          enum: [pending, dispatched, resolved]
+        notes:
+          type: string
+        snapshotUrl:
+          type: string
+          nullable: true
