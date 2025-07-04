@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="favicon.ico" />
+  <title>WatchTowerX Notifications</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.1/firebase-messaging-compat.js"></script>
+  <script type="module" src="./notifications.js"></script>
+</head>
+<body>
+  <div class="section">
+    <h2>🔥 WatchTowerX Notification Demo</h2>
+    <button id="subscribe">Subscribe for Notifications</button>
+    <!-- 👇 Removed token display elements -->
+  </div>
+
+  <div class="section">
+    <h3>📩 Incoming Alerts</h3>
+    <div id="alerts"></div>
+  </div>
+
+  <script type="module">
+    import {
+      registerServiceWorker,
+      subscribeAndGetToken,
+      setupOnMessageHandler
+    } from './notification.js';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      registerServiceWorker();
+      setupOnMessageHandler();
+      document.getElementById('subscribe').addEventListener('click', subscribeAndGetToken);
+    });
+  </script>
+</body>
+</html>
