@@ -1,15 +1,15 @@
-// WatchtowerX/backend/routes/eventRoutes.test.js
+// force test mode before loading our app
+process.env.NODE_ENV = "test";
 
 const request = require("supertest");
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
-const { app, server } = require("../index");
+const { app } = require("../index");   // now returns our Express app only
 
 let mongoServer;
 jest.setTimeout(30000);
 
 beforeAll(async () => {
-  process.env.NODE_ENV = "test";
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   await mongoose.connect(uri);
@@ -20,21 +20,15 @@ afterAll(async () => {
   await mongoose.disconnect();
   await mongoServer.stop();
 
-  // close Express server if running
-  if (app.server && typeof app.server.close === "function") {
-    await new Promise(resolve => app.server.close(resolve));
-  }
+  // stop cron job if running
   if (app.cleanupJob) {
-    app.cleanupJob.stop(); // ✅ stops cron job
-  }
-  if (server && typeof server.close === "function") {
-    await new Promise(resolve => server.close(resolve));
+    app.cleanupJob.stop();
   }
 });
 
 describe("Events API", () => {
   afterEach(async () => {
-    // drop collection to reset between tests
+    // reset between tests
     await mongoose.connection.db.dropCollection("events").catch(() => {});
   });
 
