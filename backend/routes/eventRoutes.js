@@ -21,6 +21,8 @@ const eventValidationSchema = Joi.object({
   severity:      Joi.string().valid("low","medium","high").optional(),
   status:        Joi.string().valid("pending","dispatched","resolved").optional(),
   notes:         Joi.string().max(512).optional(),
+  mode:          Joi.string().valid("live", "offline").optional(),
+  frameIndex:    Joi.number().integer().optional(),
 });
 
 // 2) POST /api/event
@@ -49,6 +51,8 @@ router.post("/event", async (req, res, next) => {
       status:        value.status   || "pending",
       notes:         value.notes    || value.eventDetails?.description || "",
       snapshotUrl,
+      mode:          value.mode || "live",
+      frameIndex:    value.frameIndex ?? null,
     };
 
     const evt = await Event.create(toSave);

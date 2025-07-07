@@ -13,6 +13,7 @@ const eventRoutes  = require("./routes/eventRoutes");
 const notifyRoute  = require("./routes/notify");
 const smsRoute     = require("./routes/smsEvents");
 const errorHandler = require("./middleware/errorHandler");
+const rawEventsRoute = require("./routes/rawEvents");
 
 const app       = express();
 let server;     // will hold our HTTP server if started below
@@ -55,6 +56,7 @@ app.use((req, res, next) => {
 
 // 5️⃣ Mount routes
 app.use("/api", eventRoutes);
+app.use("/api", rawEventsRoute);
 app.use("/notify", notifyRoute);
 app.use("/sms_event", smsRoute);
 

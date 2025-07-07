@@ -13,11 +13,14 @@ const eventSchema = new mongoose.Schema({
   severity:      { type: String,  enum: ["low","medium","high"], default: "medium" },
   status:        { type: String,  enum: ["pending","dispatched","resolved"], default: "pending" },
   notes:         { type: String,  maxlength: 512, default: "" },
+  mode:          { type: String, enum: ["live", "offline"], default: "live" },
+  frameIndex:    { type: Number, default: null },
 });
 
 // Indexes for performance
 eventSchema.index({ eventType: 1, timestamp: -1 });
 eventSchema.index({ priority: 1 });
+eventSchema.index({ mode: 1 });
 
 // Debug
 console.log("🐛 Event schema paths:", Object.keys(eventSchema.paths));
